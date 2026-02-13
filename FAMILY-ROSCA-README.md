@@ -56,6 +56,16 @@ The application will be available at `http://localhost:3000`
 - Membership join always creates `MEMBER` role (no client-side privilege escalation).
 - Entity-level audit filters require system admin role.
 
+### Migration (Schema Hardening)
+
+```bash
+# Optional backup
+cp db/custom.db db/custom.db.bak
+
+# Apply latest schema (adds unique/index/fk hardening)
+DATABASE_URL='file:../db/custom.db' bunx prisma db push --accept-data-loss
+```
+
 ## 📡 API Endpoints
 
 ### Authentication
@@ -168,8 +178,7 @@ Join a group.
 **Request:**
 ```json
 {
-  "groupId": "uuid",
-  "role": "MEMBER"
+  "groupId": "uuid"
 }
 ```
 
@@ -229,7 +238,6 @@ Create a contribution (supports idempotency).
 ```json
 {
   "cycleId": "uuid",
-  "userId": "uuid",
   "amount": "1000000",
   "idempotencyKey": "unique-key-optional"
 }
@@ -273,7 +281,8 @@ Perform a fair random draw for the current cycle.
         "fullName": "John Doe"
       },
       "payoutAmount": "5000000",
-      "eligibleMembersCount": 5
+      "eligibleMembersCount": 5,
+      "seedValue": "1739460692123-12832193"
     },
     "message": "Draw completed successfully! Winner: John Doe"
   }
@@ -292,6 +301,8 @@ List payouts.
 
 #### PATCH `/api/payouts`
 Update payout status (admin only).
+
+Valid statuses: `PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`
 
 **Request:**
 ```json
@@ -321,8 +332,8 @@ Get audit logs.
 
 **Query Parameters:**
 - `page`, `limit` - Pagination
-- `entity` - Filter by entity type
-- `entityId` - Filter by entity ID
+- `entity` - Filter by entity type (admin-only)
+- `entityId` - Filter by entity ID (admin-only)
 
 ## 📊 Database Schema
 
@@ -363,6 +374,12 @@ Session (user sessions)
 - Role-based access control (ADMIN/MEMBER)
 - Audit logging for all state changes
 - Input validation with Zod
+
+## ✅ Verification Status (2026-02-13)
+
+- `bun run test`: pass
+- `bun run lint`: pass
+- `bun run build`: pass
 
 ## 📝 Non-Custodial Design
 

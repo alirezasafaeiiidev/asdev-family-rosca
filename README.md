@@ -92,6 +92,29 @@ Open [http://localhost:3000](http://localhost:3000) to see your application runn
 - Contribution and membership APIs ignore client-supplied identity/role fields and enforce server-side session identity.
 - Entity-level audit filtering is restricted to system admins.
 
+## Migration Notes
+
+- The schema now enforces unique contribution records by `(cycleId, userId)`.
+- If upgrading an existing local SQLite DB, ensure there are no duplicate contribution rows before pushing schema changes.
+- Recommended upgrade path:
+
+```bash
+cp db/custom.db db/custom.db.bak
+DATABASE_URL='file:../db/custom.db' bunx prisma db push --accept-data-loss
+```
+
+## Recent Updates (2026-02-13)
+
+- Phase-based security hardening completed across auth, authorization, audit access, and financial flows.
+- Prisma schema integrity upgraded with new indexes and session foreign-key relation.
+- Draw flow now records deterministic audit context (`seedValue`, eligible count, method) and uses cryptographic RNG.
+- Payout state transitions are validated and `processedAt` is recorded on completion.
+- CI-quality checks enabled with strict TypeScript build and automated tests.
+
+## Changelog
+
+- Detailed change history: `CHANGELOG.md`
+
 ## 📁 Project Structure
 
 ```
