@@ -1,0 +1,439 @@
+// Family ROSCA Platform - Enterprise Edition (نسخه سازمانی)
+// پشتیبانی کامل زبان فارسی
+// Version: 2.0.0
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// کاربران و احراز هویت
+// ============================================
+
+/// کاربر سیستم
+model User {
+  id           String   @id @default(uuid())
+  phone        String   @unique
+  nationalCode String?  @unique // کد ملی
+  fullName     String
+  email        String?  @unique
+  avatar       String?  // آواتار کاربر
+  
+  // تنظیمات
+  language     String   @default("fa") // fa, en
+  theme        String   @default("light") // light, dark, system
+  currency     String   @default("IRR") // IRR, USD
+  
+  // وضعیت
+  status       String   @default("ACTIVE") // ACTIVE, SUSPENDED, BANNED
+  role         String   @default("USER") // USER, ADMIN, SUPER_ADMIN
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  ownedGroups   Group[]     @relation("OwnedGroups")
+  memberships   Membership[]
+  contributions Contribution[]
+  draws         Draw[]
+  payouts       Payout[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
+  settings      UserSettings?
+  kyc           KycInfo?
+}
+
+/// تنظیمات کاربر
+model UserSettings {
+  id                    String   @id @default(uuid())
+  userId                String   @unique
+  
+  // اعلان‌ها
+  smsNotifications      Boolean  @default(true)
+  pushNotifications     Boolean  @default(true)
+  emailNotifications    Boolean  @default(false)
+  
+  // حریم خصوصی
+  showPhone             Boolean  @default(false)
+  showEmail             Boolean  @default(false)
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// اطلاعات احراز هویت (KYC)
+model KycInfo {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  
+  // اطلاعات هویتی
+  nationalCode   String
+  birthDate      String?  // تاریخ تولد شمسی
+  province       String?  // استان
+  city           String?  // شهر
+  address        String?  // آدرس
+  
+  // مدارک
+  idCardImage    String?  // تصویر کارت ملی
+  selfieImage    String?  // سلفی
+  
+  // وضعیت تأیید
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  rejectReason   String?
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============================================
+// گروه‌ها و عضویت
+// ============================================
+
+/// گروه ROSCA
+model Group {
+  id                String   @id @default(uuid())
+  name              String
+  description       String?
+  
+  // تنظیمات گروه
+  groupType         String   @default("FAMILY") // FAMILY, FRIENDS, NEIGHBORHOOD, WORKPLACE, CUSTOM
+  amountPerCycle    BigInt
+  totalMembers      Int
+  cycleDurationDays Int      @default(30) // طول هر دوره به روز
+  
+  // قوانین
+  penaltyAmount     BigInt?   // جریمه تأخیر
+  minTrustScore     Int       @default(0) // حداقل امتیاز اعتبار
+  
+  // وضعیت
+  status            String    @default("DRAFT") // DRAFT, ACTIVE, PAUSED, COMPLETED, CANCELLED
+  visibility        String    @default("PRIVATE") // PRIVATE, PUBLIC, INVITE_ONLY
+  
+  // تصویر و برند
+  logo              String?
+  coverImage        String?
+  
+  // زمان‌بندی
+  startDate         DateTime?
+  endDate           DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  // Relations
+  ownerId           String
+  owner             User      @relation("OwnedGroups", fields: [ownerId], references: [id])
+  members           Membership[]
+  cycles            Cycle[]
+  invitations       GroupInvitation[]
+  rules             GroupRule[]
+}
+
+/// قوانین گروه
+model GroupRule {
+  id          String   @id @default(uuid())
+  groupId     String
+  title       String
+  description String
+  order       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+/// دعوت به گروه
+model GroupInvitation {
+  id          String   @id @default(uuid())
+  groupId     String
+  inviterId   String
+  inviteePhone String
+  code        String   @unique // کد دعوت
+  
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED, EXPIRED
+  expiresAt   DateTime
+  
+  createdAt   DateTime @default(now())
+
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+/// عضویت در گروه
+model Membership {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  
+  // نقش و وضعیت
+  role      String   @default("MEMBER") // OWNER, ADMIN, TREASURER, MEMBER
+  status    String   @default("PENDING") // PENDING, ACTIVE, PAUSED, REMOVED, BANNED
+  
+  // امتیاز و آمار
+  trustScore Int     @default(50) // امتیاز اعتبار (0-100)
+  totalPaid  BigInt   @default(0) // مجموع پرداختی
+  totalWon   BigInt   @default(0) // مجموع برد
+  
+  // زمان‌بندی
+  joinedAt  DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+// ============================================
+// دوره‌ها و پرداخت‌ها
+// ============================================
+
+/// دوره پرداخت
+model Cycle {
+  id              String   @id @default(uuid())
+  groupId         String
+  cycleNumber     Int
+  
+  // زمان‌بندی (شمسی)
+  dueDate         DateTime // سررسید میلادی
+  dueDateJalali   String?  // سررسید شمسی
+  
+  // وضعیت
+  status          String   @default("UPCOMING") // UPCOMING, OPEN, CLOSED, CANCELLED
+  
+  // یادآوری
+  reminderSent    Boolean  @default(false)
+  reminderSentAt  DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  group           Group          @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  contributions   Contribution[]
+  draw            Draw?
+  payout          Payout?
+}
+
+/// پرداخت/مشارکت
+model Contribution {
+  id             String    @id @default(uuid())
+  cycleId        String
+  userId         String
+  
+  // مبلغ
+  amount         BigInt
+  penaltyAmount  BigInt?   @default(0) // جریمه تأخیر
+  
+  // وضعیت
+  status         String    @default("PENDING") // PENDING, CONFIRMED, FAILED, CANCELLED, LATE
+  
+  // شناسه یکتا برای تکرارپذیری
+  idempotencyKey String?   @unique
+  
+  // زمان‌ها
+  dueDate        DateTime? // سررسید
+  paidAt         DateTime? // زمان پرداخت
+  confirmedAt    DateTime? // زمان تأیید
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  // Relations
+  cycle          Cycle     @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, userId])
+}
+
+/// قرعه‌کشی
+model Draw {
+  id           String   @id @default(uuid())
+  cycleId      String   @unique
+  winnerId     String
+  
+  // روش قرعه‌کشی
+  method       String   @default("RANDOM") // RANDOM, PRIORITY, MANUAL
+  
+  // اطلاعات اضافی
+  eligibleCount Int?    // تعداد واجدین شرایط
+  seedValue    String?  // مقدار seed برای تکرارپذیری
+  
+  createdAt    DateTime @default(now())
+
+  // Relations
+  cycle        Cycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  winner       User     @relation(fields: [winnerId], references: [id])
+}
+
+/// پرداخت به برنده
+model Payout {
+  id           String   @id @default(uuid())
+  cycleId      String   @unique
+  receiverId   String
+  
+  // مبلغ
+  amount       BigInt
+  bonusAmount  BigInt?  @default(0) // پاداش
+  
+  // وضعیت
+  status       String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  
+  // اطلاعات بانکی
+  bankName     String?
+  accountNumber String?
+  shebaNumber  String?
+  
+  // زمان‌ها
+  processedAt  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  cycle        Cycle    @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  receiver     User     @relation(fields: [receiverId], references: [id])
+}
+
+// ============================================
+// اعلان‌ها و پیام‌ها
+// ============================================
+
+/// اعلان
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  
+  // محتوا
+  type        String   // CYCLE_DUE, DRAW_RESULT, PAYMENT_CONFIRMED, etc.
+  title       String
+  message     String
+  data        String?  // JSON
+  
+  // وضعیت
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  
+  // کانال ارسال
+  channel     String   @default("IN_APP") // IN_APP, SMS, EMAIL, PUSH
+  sentAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+/// قالب اعلان
+model NotificationTemplate {
+  id          String   @id @default(uuid())
+  type        String   @unique
+  titleFa     String
+  titleEn     String
+  bodyFa      String
+  bodyEn      String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ============================================
+// لاگ و گزارش‌ها
+// ============================================
+
+/// لاگ عملیات
+model AuditLog {
+  id          String   @id @default(uuid())
+  entity      String
+  entityId    String
+  action      String
+  userId      String?
+  
+  // اطلاعات اضافی
+  oldValue    String?  // JSON
+  newValue    String?  // JSON
+  metadata    String?  // JSON
+  
+  // اطلاعات دستگاه
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime @default(now())
+
+  // Relations
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+/// گزارش سیستمی
+model Report {
+  id          String   @id @default(uuid())
+  type        String   // MEMBER_ACTIVITY, FINANCIAL, GROUP_STATUS
+  groupId     String?
+  generatedBy String?
+  
+  // محتوا
+  data        String   // JSON
+  format      String   @default("JSON") // JSON, CSV, PDF
+  
+  createdAt   DateTime @default(now())
+}
+
+// ============================================
+// احراز هویت
+// ============================================
+
+/// کد OTP
+model OTPCode {
+  id         String   @id @default(uuid())
+  phone      String
+  code       String
+  purpose    String   @default("LOGIN") // LOGIN, REGISTER, RESET
+  
+  expiresAt  DateTime
+  used       Boolean  @default(false)
+  usedAt     DateTime?
+  
+  createdAt  DateTime @default(now())
+
+  @@index([phone, used, expiresAt])
+}
+
+/// نشست کاربر
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  token        String   @unique
+  
+  // اطلاعات دستگاه
+  deviceInfo   String?
+  ipAddress    String?
+  
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// تنظیمات سیستم
+model SystemSettings {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
