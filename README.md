@@ -9,6 +9,17 @@ A family ROSCA coordination project under ASDEV naming and governance standards.
 ## Notes
 Operational scope, privacy, and data model should be documented before feature rollout.
 
+## Branding & SEO Baseline
+- Footer attribution line: `توسعه و اجرا توسط Alireza Safaei (ASDEV)`
+- Brand page route: `/brand`
+- SEO routes: `/sitemap.xml` and `/robots.txt`
+- Branding source config: `src/lib/brand.ts`
+
+## Execution Reports
+- `docs/reports/PHASE_2_SEO_REPORT.md`
+- `docs/reports/PHASE_4_STANDARDIZATION_REPORT.md`
+- `docs/README.md`
+
 
 ## ✨ Technology Stack
 

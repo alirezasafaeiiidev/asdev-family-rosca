@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
+import { BRAND } from "@/lib/brand";
 
 const vazirmatn = Vazirmatn({
   subsets: ["arabic", "latin"],
@@ -10,17 +11,26 @@ const vazirmatn = Vazirmatn({
 });
 
 export const metadata: Metadata = {
-  title: "صندوق خانوادگی | Family ROSCA",
-  description: "سیستم مدیریت صندوق‌های قرض‌الحسنه خانوادگی و دوستانه - غیرامانی و شفاف",
+  metadataBase: new URL(BRAND.siteUrl),
+  title: {
+    default: `${BRAND.productNameFa} | ${BRAND.productName}`,
+    template: `%s | ${BRAND.productName}`,
+  },
+  description: BRAND.positioningFa,
   keywords: ["صندوق", "ROSCA", "قرض‌الحسنه", "خانواده", "پس‌انداز", "صندوق خانوادگی"],
-  authors: [{ name: "ROSCA Platform" }],
+  authors: [{ name: BRAND.ownerName }],
+  alternates: {
+    canonical: "/",
+  },
   icons: {
     icon: "/logo.svg",
   },
   openGraph: {
-    title: "صندوق خانوادگی | Family ROSCA",
-    description: "سیستم مدیریت صندوق‌های قرض‌الحسنه خانوادگی و دوستانه",
+    title: `${BRAND.productNameFa} | ${BRAND.productName}`,
+    description: BRAND.positioningFa,
     type: "website",
+    url: BRAND.siteUrl,
+    siteName: `${BRAND.productName} by ${BRAND.masterBrandName}`,
   },
 };
 

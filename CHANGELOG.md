@@ -26,3 +26,15 @@ All notable changes to this project are documented in this file.
 
 - Applied schema updates to local `db/custom.db`.
 - Verified indexes and `Session -> User` foreign key after sync.
+
+## 2026-02-14
+
+### feat: brand and seo baseline rollout
+
+- Added ASDEV branding source config: `src/lib/brand.ts`.
+- Added public brand page: `/brand`.
+- Added technical SEO routes:
+  - `/sitemap.xml` via `src/app/sitemap.ts`
+  - `/robots.txt` via `src/app/robots.ts`
+- Added footer attribution link to brand page on landing.
+- Updated root metadata with canonical and OpenGraph baseline.
