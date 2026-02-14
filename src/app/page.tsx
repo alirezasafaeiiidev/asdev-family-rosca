@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +18,7 @@ import {
   TrendingUp,
   ArrowLeft
 } from 'lucide-react';
-import { toPersianNumber, formatToman } from '@/lib/persian';
+import { BRAND } from '@/lib/brand';
 import fa from '@/lib/translations';
 
 export default function HomePage() {
@@ -289,7 +290,7 @@ export default function HomePage() {
 
       {/* فوتر */}
       <footer className="fixed bottom-0 left-0 right-0 bg-white/80 dark:bg-gray-900/80 backdrop-blur py-4 text-center text-sm text-gray-500 border-t dark:border-gray-800">
-        <div className="max-w-6xl mx-auto px-4 flex items-center justify-center gap-6">
+        <div className="max-w-6xl mx-auto px-4 flex flex-wrap items-center justify-center gap-4">
           <span className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-emerald-500" />
             {fa.help.nonCustodial}
@@ -298,6 +299,13 @@ export default function HomePage() {
           <span className="hidden sm:flex items-center gap-2">
             📅 تقویم شمسی
           </span>
+          <span className="hidden sm:inline">|</span>
+          <Link
+            href="/brand"
+            className="text-emerald-700 hover:text-emerald-600 dark:text-emerald-400 dark:hover:text-emerald-300 font-medium"
+          >
+            توسعه و اجرا توسط {BRAND.ownerName} ({BRAND.masterBrandName})
+          </Link>
         </div>
       </footer>
     </main>
